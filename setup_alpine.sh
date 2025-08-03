@@ -59,6 +59,34 @@ install_docker() {
     echo -e "Docker Compose版本：$(docker-compose --version)"
 }
 
+# 配置NFS客户端
+config_nfs_client() {
+    echo -e "${YELLOW}正在配置NFS客户端支持...${NC}"
+    
+    # 安装必要软件包
+    echo -e "${YELLOW}安装nfs-utils和rpcbind...${NC}"
+    apk add nfs-utils rpcbind
+    
+    # 创建statd目录并设置权限
+    echo -e "${YELLOW}配置statd目录...${NC}"
+    mkdir -p /var/lib/nfs/statd/sm
+    chmod 755 /var/lib/nfs/statd /var/lib/nfs/statd/sm
+    
+    # 启动服务
+    echo -e "${YELLOW}启动rpcbind服务...${NC}"
+    rc-update add rpcbind default
+    rc-service rpcbind start
+    
+    echo -e "${YELLOW}启动nfsmount服务...${NC}"
+    rc-update add nfsmount default
+    rc-service nfsmount start
+    
+    echo -e "${GREEN}NFS客户端配置完成！${NC}"
+    echo -e "现在可以手动挂载NFS共享，例如："
+    echo -e "  mount -t nfs <服务器IP>:/path/to/share /mnt/nfs"
+    echo -e "或添加到/etc/fstab实现开机自动挂载"
+}
+
 # 显示菜单
 show_menu() {
     clear
@@ -70,22 +98,25 @@ show_menu() {
     echo -e "3. 安装基础工具 (nano+openssh)"
     echo -e "4. 配置SSH服务 (允许root登录)"
     echo -e "5. 安装Docker和Docker Compose"
-    echo -e "6. 一键执行全部操作"
+    echo -e "6. 配置NFS客户端支持"
+    echo -e "7. 一键执行全部操作"
     echo -e "0. 退出脚本"
     echo -e "${GREEN}================================${NC}"
-    read -p "请输入选项 [0-6]: " option
+    read -p "请输入选项 [0-7]: " option
     case $option in
         1) change_repo; pause ;;
         2) update_system; pause ;;
         3) install_tools; pause ;;
         4) config_ssh; pause ;;
         5) install_docker; pause ;;
-        6) 
+        6) config_nfs_client; pause ;;
+        7) 
             change_repo
             update_system
             install_tools
             config_ssh
             install_docker
+            config_nfs_client
             pause 
             ;;
         0) exit 0 ;;
